@@ -22,10 +22,13 @@ function setUp(){
 	deleteCol = 'deletetests';
 	types = {
 		'number' = 100,
+		'negativefloat' = -987.097654,
+		'positivefloat' = 9654.5555555,
 		'israd' = true,
+		'stringwithnum' = 'string ending with 1',
 		'numbers' = [1,2,3],
 		'booleans' = [true, false],
-		'floats' = [1.3,2.5]
+		'floats' = [1.3,2.59870,-148.27654]
 	};
 	doc = {
 	    'name'='unittest',
@@ -125,12 +128,61 @@ function testSearch(){
   assertEquals( arrayLen(afterSave), arrayLen(initial) + addNew );
 }
 
+function distinct_should_return_array_of_distinct_values(){
+	var collection = "distincts";
+	var all = [
+		{val=1},
+		{val=1},
+		{val=2},
+		{val=1},
+		{val=100}
+	];
+	mongo.remove({}, collection);
+	var initial = mongo.distinct("VAL", collection);
+	assertEquals(0,arrayLen(initial));
 
-function testStoreDoc(){
+	mongo.saveAll( all, collection );
+	var distincts = mongo.distinct("VAL", collection);
+	assertEquals(1, distincts[1]);
+	assertEquals(2, distincts[2]);
+	assertEquals(100, distincts[3]);
+}
+
+
+function save_should_add_id_to_doc(){
   //debug(doc);
   id = mongo.save( doc, col );
   assert( NOT isSimpleValue(id) );
   mongo.remove( doc, col );
+}
+
+function saveAll_should_return_immediately_if_no_docs_present(){
+	assertEquals( [], mongo.saveAll([],col)   );
+}
+
+function saveAll_should_save_ArrayOfDBObjects(){
+	var i = 1;
+	var people = [];
+	var u = mongo.getMongoUtil();
+	var purpose = "SaveAllDBObjectsTest";
+	for( i = 1; i <= 2; i++ ){
+		arrayAppend( people, u.toMongo( {"name"="unittest", "purpose"=purpose} ) );
+	}
+	mongo.saveAll( people, col );
+	var result = mongo.query( col ).$eq("purpose",purpose).count();
+	assertEquals(2,result,"We inserted 2 pre-created BasicDBObjects with purpose #purpose# but only found #result#");
+}
+
+function saveAll_should_save_ArrayOfStructs(){
+	var i = 1;
+	var people = [];
+	var purpose = "SaveAllStructsTest";
+	for( i = 1; i <= 2; i++ ){
+		arrayAppend( people, {"name"="unittest", "purpose"=purpose} );
+	}
+	mongo.saveAll( people, col );
+	var result = mongo.query( col ).$eq("purpose",purpose).count();
+	assertEquals(2,result,"We inserted 2 structs with purpose #purpose# but only found #result#");
 }
 
 function findById_should_return_doc_for_id(){
